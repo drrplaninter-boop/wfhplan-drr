@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ระบบรายงานการปฏิบัติงาน ณ สถานที่พัก — กองแผนงาน</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:#0b2545; --blue:#134074; --sky:#1f6cb5; --light:#4a9fd4; --accent:#13a89e;
+  --gold:#c9a227; --green:#1a7a4a; --lg:#22a865; --red:#c0392b; --orange:#d4782a; --purple:#6c3fc5;
+  --bg:#eef2f9; --bg2:#f7f9fd; --card:#ffffff; --text:#1a2a3a; --muted:#5e7291; --border:#cdd8ec;
+  --shadow-sm:0 1px 6px rgba(11,37,69,0.08); --shadow:0 4px 20px rgba(11,37,69,0.10); --shadow-lg:0 8px 32px rgba(11,37,69,0.14);
+  --r:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text)}
+button,select,input,textarea{font-family:'Sarabun',sans-serif;outline:none;border:none}
+button{cursor:pointer}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+#shell{display:flex;min-height:100vh}
+#sidebar{width:240px;flex-shrink:0;background:linear-gradient(175deg,var(--navy) 0%,#0d3460 60%,#134074 100%);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;transition:transform .3s ease}
+.sb-logo{padding:28px 20px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo-icon{font-size:30px;margin-bottom:8px;display:block}
+.sb-logo-title{font-size:14px;font-weight:800;color:#fff;line-height:1.3}
+.sb-logo-sub{font-size:10px;color:rgba(255,255,255,.55);margin-top:4px}
+.sb-date{margin:12px 16px 4px;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.07);font-size:10px;color:rgba(255,255,255,.7);line-height:1.6}
+.sb-date strong{font-size:16px;color:#fff;display:block;font-weight:800}
+.sb-nav{padding:8px 12px;flex:1}
+.sb-nav-item{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;margin-bottom:4px;color:rgba(255,255,255,.65);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.sb-nav-item:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.9)}
+.sb-nav-item.active{background:rgba(255,255,255,.15);color:#fff}
+.sb-nav-item .nav-icon{font-size:17px;flex-shrink:0}
+.sb-mode-badge{margin:0 12px 10px;padding:10px 14px;border-radius:12px;font-size:11px;font-weight:700;text-align:center;cursor:pointer}
+.sb-mode-badge.checkin{background:rgba(34,168,101,.2);color:#5ddb9a;border:1px solid rgba(34,168,101,.3)}
+.sb-mode-badge.checkout{background:rgba(212,120,42,.2);color:#f0a862;border:1px solid rgba(212,120,42,.3)}
+.sb-foot{padding:0 16px 16px;font-size:10px;color:rgba(255,255,255,.4);text-align:center}
+
+#main{margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh;min-width:0}
+#topbar{background:var(--card);border-bottom:1.5px solid var(--border);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm)}
+.topbar-title{font-size:16px;font-weight:800;color:var(--navy)}
+.topbar-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.topbar-clock{font-size:20px;font-weight:800;color:var(--sky);font-variant-numeric:tabular-nums}
+#page{padding:24px 28px;flex:1;animation:fadeIn .3s ease}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.kpi-grid-desk{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1.5px solid var(--border);overflow:hidden;margin-bottom:18px;animation:fadeUp .35s ease both}
+.card-hd{padding:14px 18px;display:flex;align-items:center;gap:10px;border-bottom:1.5px solid var(--border);background:linear-gradient(to right,#f5f8ff,var(--card))}
+.card-hd-icon{font-size:20px}
+.card-hd-title{font-size:14px;font-weight:800;color:var(--navy)}
+.card-hd-badge{margin-left:auto;font-size:10px;font-weight:700;padding:3px 11px;border-radius:20px;color:#fff;white-space:nowrap}
+.card-body{padding:18px}
+
+.status-banner{border-radius:12px;padding:13px 16px;margin-bottom:14px;display:flex;align-items:flex-start;gap:12px;animation:fadeUp .3s ease}
+.status-banner.done-in{background:#e6f9f0;border:2px solid #a8e8c4}
+.status-banner.done-both{background:#f0eaff;border:2px solid #c4a8f0}
+.status-banner.checking{background:#f0f4fa;border:2px dashed var(--border)}
+.status-banner.ready{background:#f0f8ff;border:2px solid var(--border)}
+.status-banner.warn{background:#ffeaea;border:2px solid #ffcfcf}
+.status-icon{font-size:26px;flex-shrink:0}
+.status-title{font-size:14px;font-weight:800}
+.status-sub{font-size:12px;margin-top:3px;line-height:1.5;color:var(--muted)}
+.status-time{font-size:20px;font-weight:800;color:var(--navy)}
+
+.form-mode-banner{padding:14px 18px;border-radius:var(--r);margin-bottom:20px;font-weight:700;font-size:15px;display:flex;align-items:center;gap:10px}
+.form-mode-banner.checkin{background:#e6f9f0;color:var(--green);border:2px solid #a8e8c4}
+.form-mode-banner.checkout{background:#fff5ea;color:var(--orange);border:2px solid #ffd0a0}
+.form-mode-banner .banner-text{flex:1}
+.form-mode-banner .banner-sub{font-size:11px;font-weight:500;opacity:.8}
+
+.field{margin-bottom:16px}
+.field label{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--navy);margin-bottom:7px}
+.field label .req{color:var(--red)}
+.field select,.field input{width:100%;padding:11px 14px;border-radius:11px;border:1.5px solid var(--border);font-size:13.5px;color:var(--text);background:var(--bg2);transition:all .2s;appearance:none;-webkit-appearance:none}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235e7291' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+.field select:focus,.field input:focus{border-color:var(--sky);background-color:#fff;box-shadow:0 0 0 3px rgba(31,108,181,.12)}
+
+.radio-group{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.radio-btn{padding:11px 10px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg2);text-align:center;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .18s}
+.radio-btn:hover{border-color:var(--light);background:#f0f8ff}
+.radio-btn.selected{border-color:var(--sky);background:#e6f2fc;color:var(--blue);box-shadow:0 2px 8px rgba(31,108,181,.15)}
+.radio-btn .emoji{font-size:20px;display:block;margin-bottom:4px}
+
+.plan-input{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.plan-num{width:26px;height:26px;border-radius:50%;background:var(--sky);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.plan-input input{flex:1}
+
+.btn-primary{width:100%;padding:14px;border-radius:12px;font-size:15px;font-weight:800;background:linear-gradient(135deg,var(--navy) 0%,var(--sky) 100%);color:#fff;box-shadow:0 4px 16px rgba(11,37,69,.25);transition:all .2s;margin-top:6px}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none;filter:grayscale(.6)}
+.btn-secondary{padding:10px 18px;border-radius:10px;font-size:13px;font-weight:700;background:var(--bg);color:var(--navy);border:1.5px solid var(--border)}
+.btn-secondary:hover{background:#e0e8f6}
+
+.mode-toggle{display:flex;border-radius:12px;overflow:hidden;border:1.5px solid var(--border);margin-bottom:20px;background:var(--bg2)}
+.mode-btn{flex:1;padding:12px;text-align:center;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s}
+.mode-btn.active{background:var(--sky);color:#fff}
+
+.checklist-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.check-item{display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:11px;border:1.5px solid var(--border);background:var(--bg2);cursor:pointer;transition:all .18s;user-select:none}
+.check-item:hover{border-color:var(--light)}
+.check-item.checked{border-color:var(--sky);background:#e6f2fc}
+.check-box{width:19px;height:19px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;background:#fff;margin-left:auto}
+.check-item.checked .check-box{background:var(--sky);border-color:var(--sky);color:#fff}
+.check-label{font-size:12px;font-weight:600;color:var(--muted)}
+.check-item.checked .check-label{color:var(--navy)}
+.check-icon{font-size:16px;flex-shrink:0}
+
+.sig-wrap{border:2px dashed var(--border);border-radius:12px;background:#fff;position:relative;overflow:hidden}
+.sig-wrap.has-sig{border-color:var(--sky);border-style:solid}
+.sig-wrap canvas{display:block;width:100%;height:130px;touch-action:none;cursor:crosshair}
+.sig-placeholder{position:absolute;left:0;right:0;top:0;height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;color:var(--muted);font-size:12px;gap:6px;transition:opacity .2s}
+.sig-placeholder .sig-icon{font-size:30px;opacity:.35}
+.sig-placeholder.hidden{opacity:0}
+.sig-toolbar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-top:1.5px solid var(--border);background:#f4f7fb}
+.sig-toolbar-label{font-size:10px;color:var(--muted);font-weight:600}
+.sig-clear{font-size:11px;font-weight:700;color:var(--red);background:#ffeaea;border:1px solid #ffcfcf;padding:4px 12px;border-radius:20px}
+
+.success-screen{max-width:420px;margin:0 auto;text-align:center;padding:48px 20px;animation:fadeUp .4s ease}
+.success-icon-wrap{width:88px;height:88px;border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:42px}
+.success-icon-wrap.in{background:linear-gradient(135deg,#e6f9f0,#b8eecc)}
+.success-icon-wrap.out{background:linear-gradient(135deg,#fff5ea,#ffdba8)}
+.success-title{font-size:22px;font-weight:800;margin-bottom:6px}
+.success-title.in{color:var(--green)} .success-title.out{color:var(--orange)}
+.success-time{font-size:38px;font-weight:800;color:var(--navy);margin:10px 0}
+.success-name{font-size:16px;font-weight:700;color:var(--sky);margin-bottom:6px}
+.success-sub{font-size:13px;color:var(--muted);line-height:1.6}
+.success-actions{display:flex;gap:10px;justify-content:center;margin-top:24px;flex-wrap:wrap}
+
+.kpi-card{border-radius:16px;padding:18px 16px;text-align:center;border:1.5px solid;animation:fadeUp .4s ease both}
+.kpi-icon{font-size:26px;margin-bottom:6px}
+.kpi-val{font-size:32px;font-weight:800;line-height:1}
+.kpi-label{font-size:11px;color:var(--muted);margin-top:4px;font-weight:600}
+
+.group-row{background:var(--card);border-radius:13px;padding:14px 16px;margin-bottom:9px;border:1.5px solid var(--border);box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:13px;cursor:pointer;transition:all .2s;animation:fadeUp .35s ease both}
+.group-row:hover{border-color:var(--light);box-shadow:var(--shadow);transform:translateX(3px)}
+.group-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.group-info{flex:1;min-width:0}
+.group-name{font-size:13px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.group-stat{font-size:11px;color:var(--muted);margin-top:2px}
+.group-progress{width:70px;flex-shrink:0}
+.progress-bar{height:7px;border-radius:4px;background:var(--border);overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;transition:width .6s}
+.progress-pct{font-size:11px;font-weight:800;text-align:right;margin-top:3px}
+.group-arrow{color:var(--muted);font-size:16px}
+
+.missing-group{font-size:11px;font-weight:700;color:var(--muted);margin:10px 0 4px}
+.missing-group:first-child{margin-top:0}
+.missing-tag{display:inline-flex;align-items:center;padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;background:#ffeaea;color:var(--red);border:1px solid #ffcfcf;margin:3px}
+
+.back-btn{display:inline-flex;align-items:center;gap:6px;color:var(--sky);font-size:13px;font-weight:700;margin-bottom:18px;cursor:pointer;padding:6px 0}
+.person-card{background:var(--card);border-radius:14px;padding:16px 18px;margin-bottom:10px;border:1.5px solid var(--border);box-shadow:var(--shadow-sm);animation:fadeUp .3s ease both}
+.person-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.person-name{font-size:14px;font-weight:800;color:var(--navy)}
+.person-type-badge{font-size:10px;padding:3px 10px;border-radius:12px;font-weight:700;white-space:nowrap}
+.type-gov{background:#e6f2fc;color:var(--blue)} .type-emp{background:#e6f9f0;color:var(--green)} .type-other{background:#fff5ea;color:var(--orange)}
+.time-row{display:flex;gap:8px;margin-bottom:10px}
+.time-chip{flex:1;padding:8px;border-radius:10px;text-align:center;font-size:12px;font-weight:800}
+.time-chip.in{background:#e6f9f0;color:var(--green)} .time-chip.out{background:#fff5ea;color:var(--orange)} .time-chip.missing{background:#ffeaea;color:var(--red)}
+.t-label{font-size:9px;font-weight:500;opacity:.8;display:block;margin-bottom:2px}
+.plans-label{font-size:10px;font-weight:700;color:var(--muted);margin-bottom:5px}
+.plan-item{padding:3px 0 3px 14px;font-size:12px;position:relative;line-height:1.5}
+.plan-item::before{content:'▸';position:absolute;left:0;color:var(--sky)}
+.day-tag{display:inline-block;padding:3px 11px;border-radius:12px;font-size:10px;font-weight:700;margin-bottom:8px}
+.day-wfh{background:#e6f2fc;color:var(--blue)} .day-office{background:#e6f9f0;color:var(--green)} .day-field{background:#fff5ea;color:var(--orange)} .day-leave{background:#f3eaff;color:var(--purple)}
+
+.filter-bar{background:var(--card);border-radius:var(--r);padding:14px 16px;margin-bottom:18px;box-shadow:var(--shadow-sm);border:1.5px solid var(--border);display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.filter-item{flex:1;min-width:160px}
+.filter-item label{font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:5px}
+.filter-item select,.filter-item input[type="date"]{width:100%;padding:9px 12px;border-radius:9px;border:1.5px solid var(--border);font-size:13px;background:var(--bg2);color:var(--text)}
+
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;gap:16px}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--sky);border-radius:50%;animation:spin .75s linear infinite}
+.loading-text{font-size:13px;color:var(--muted);font-weight:600}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state .emoji{font-size:40px;display:block;margin-bottom:12px}
+.empty-state p{font-size:13px;line-height:1.6}
+.err-box{color:var(--red);font-size:13px;text-align:center;margin:4px 0 12px;font-weight:600}
+
+@media (max-width:768px){
+  #sidebar{transform:translateX(-100%);width:260px}
+  #sidebar.open{transform:translateX(0);box-shadow:var(--shadow-lg)}
+  #main{margin-left:0}
+  #topbar{padding:0 12px}
+  .topbar-sub{display:none}
+  #page{padding:14px 14px 90px}
+  .form-grid,.dash-grid{display:block}
+  .kpi-grid-desk{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+  #bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1.5px solid var(--border);display:flex;z-index:150;box-shadow:0 -4px 20px rgba(11,37,69,.1);padding-bottom:env(safe-area-inset-bottom)}
+  .bn-item{flex:1;padding:10px 8px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;font-size:10px;font-weight:600;color:var(--muted)}
+  .bn-item.active{color:var(--sky)}
+  .bn-item .bn-icon{font-size:22px;line-height:1}
+  #overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:199}
+  #overlay.show{display:block}
+  #menu-btn{width:36px;height:36px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--navy);flex-shrink:0}
+  .filter-bar{flex-direction:column;align-items:stretch;gap:10px}
+  .filter-item{min-width:100%}
+  .checklist-grid{grid-template-columns:1fr 1fr}
+}
+@media (min-width:769px){
+  #bottom-nav,#menu-btn,#overlay{display:none!important}
+}
+</style>
+</head>
+<body>
+<div id="overlay" onclick="closeSidebar()"></div>
+<div id="shell">
+  <nav id="sidebar">
+    <div class="sb-logo">
+      <span class="sb-logo-icon">🏛️</span>
+      <div class="sb-logo-title">ระบบรายงานการปฏิบัติงาน<br>ณ สถานที่พัก กองแผนงาน</div>
+      <div class="sb-logo-sub">WORK FROM HOME (WFH)</div>
+    </div>
+    <div class="sb-date" id="sb-date-box"></div>
+    <div class="sb-nav" id="sb-nav"></div>
+    <div class="sb-mode-badge checkin" id="sb-mode" onclick="switchView('form')"></div>
+    <div class="sb-foot">กองแผนงาน • กรมทางหลวงชนบท</div>
+  </nav>
+
+  <div id="main">
+    <div id="topbar">
+      <button id="menu-btn" onclick="toggleSidebar()">☰</button>
+      <div style="flex:1;min-width:0">
+        <div class="topbar-title" id="topbar-title">รายงานการปฏิบัติงาน</div>
+        <div class="topbar-sub">WORK FROM HOME (WFH) • กองแผนงาน กรมทางหลวงชนบท</div>
+      </div>
+      <div class="topbar-clock" id="clock">00:00</div>
+    </div>
+    <div id="page"></div>
+  </div>
+</div>
+
+<nav id="bottom-nav">
+  <div class="bn-item active" id="bn-form" onclick="switchView('form')"><span class="bn-icon">📝</span>ลงชื่อ</div>
+  <div class="bn-item" id="bn-dashboard" onclick="switchView('dashboard')"><span class="bn-icon">📊</span>Dashboard</div>
+</nav>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   ⚙️  ใส่ URL ของ Google Apps Script Web App (ลงท้ายด้วย /exec) ตรงนี้
+════════════════════════════════════════════════════════════ */
+const API_URL = 'https://script.google.com/macros/s/AKfycbwvk2R3q49r0kSIExtcESTGy8IAny1FXVYgA0QFUM2zbKdqzTmSsCIMPoE6YGJAtx1N/exec';
+
+/* ════════════ STATE ════════════ */
+const EMPTY_FORM = () => ({
+  group:'', name:'', dayType:'WFH',
+  plan1:'', plan2:'', plan3:'', summary1:'', summary2:'', summary3:'',
+  workTypes:[], signature:''
+});
+let S = {
+  view:'loading', formMode:'checkin',
+  employees:[], groups:[],
+  selGroup:'ทั้งหมด', selDate:todayStr(),
+  dashboard:null, dashGroups:[], groupDetail:null,
+  submitting:false, submittedAt:null, submittedName:'',
+  error:null, loadError:null,
+  form:EMPTY_FORM(),
+  statusChecking:false, todayStatus:null,
+};
+
+/* ════════════ UTILS ════════════ */
+function todayStr(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function thaiDate(ds){
+  const M=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const W=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const d=new Date(ds+'T00:00:00');
+  return `${W[d.getDay()]} ${d.getDate()} ${M[d.getMonth()]} ${d.getFullYear()+543}`;
+}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function pct(a,b){return b===0?0:Math.round(a/b*100);}
+function dotColor(r){return r>=1?'var(--lg)':r>0.5?'var(--gold)':'var(--red)';}
+function dayTagClass(t){
+  if(!t) return '';
+  if(t.includes('WFH')) return 'day-wfh';
+  if(t.includes('ออฟฟิศ')) return 'day-office';
+  if(t.includes('พื้นที่')) return 'day-field';
+  return 'day-leave';
+}
+function typeClass(t){
+  if(!t) return 'type-other';
+  if(t.includes('ข้าราชการ')&&!t.includes('พนักงาน')) return 'type-gov';
+  if(t.includes('พนักงาน')||t.includes('ลูกจ้าง')) return 'type-emp';
+  return 'type-other';
+}
+const apiReady = () => /^https:\/\/script\.google\.com\/.+\/exec$/.test(API_URL);
+
+// JSONP (เลี่ยง CORS ระหว่าง Netlify ↔ Google Apps Script)
+function api(p){
+  return new Promise((resolve,reject)=>{
+    if(!apiReady()) return reject(new Error('API_URL not set'));
+    const cb='_cb'+Date.now()+Math.floor(Math.random()*99999);
+    const url=API_URL+'?'+new URLSearchParams({...p,callback:cb}).toString();
+    const timer=setTimeout(()=>{cleanup();reject(new Error('timeout'));},20000);
+    function cleanup(){clearTimeout(timer);delete window[cb];document.getElementById(cb)?.remove();}
+    window[cb]=d=>{cleanup();resolve(d);};
+    const s=document.createElement('script');
+    s.id=cb; s.src=url; s.onerror=()=>{cleanup();reject(new Error('network'));};
+    document.head.appendChild(s);
+  });
+}
+// POST สำหรับข้อมูลยาว (ลายเซ็น) — no-cors: ส่งได้แต่อ่านผลตอบกลับไม่ได้
+function apiPost(body){
+  return fetch(API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
+}
+
+/* ════════════ CLOCK ════════════ */
+function tickClock(){
+  const n=new Date();
+  const hm=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('clock').textContent=hm;
+  document.getElementById('sb-date-box').innerHTML=`<strong>${hm} น.</strong>${thaiDate(todayStr())}`;
+}
+setInterval(tickClock,1000);
+
+/* ════════════ SIDEBAR / NAV ════════════ */
+const NAV_ITEMS=[{view:'form',icon:'📝',label:'รายงานการปฏิบัติงาน'},{view:'dashboard',icon:'📊',label:'Dashboard'}];
+function isActive(v){return S.view===v||(v==='form'&&S.view==='success')||(v==='dashboard'&&S.view==='detail');}
+function renderSidebar(){
+  document.getElementById('sb-nav').innerHTML=NAV_ITEMS.map(n=>`
+    <div class="sb-nav-item ${isActive(n.view)?'active':''}" onclick="switchView('${n.view}')">
+      <span class="nav-icon">${n.icon}</span>${n.label}</div>`).join('');
+  const b=document.getElementById('sb-mode');
+  b.className='sb-mode-badge '+S.formMode;
+  b.textContent=S.formMode==='checkin'?'🌅 โหมดเช้า — Check-in':'🌆 โหมดเย็น — Check-out';
+  const T={form:'รายงานการปฏิบัติงาน',dashboard:'Dashboard',detail:'รายละเอียดกลุ่ม',success:'บันทึกสำเร็จ',loading:'กำลังโหลด'};
+  document.getElementById('topbar-title').textContent=T[S.view]||'';
+  ['form','dashboard'].forEach(v=>{
+    const el=document.getElementById('bn-'+v);
+    if(el) el.className='bn-item'+(isActive(v)?' active':'');
+  });
+}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
+
+/* ════════════ RENDER ════════════ */
+function render(){
+  document.getElementById('page').innerHTML=buildPage();
+  renderSidebar();
+  bindEvents();
+}
+function buildPage(){
+  if(!apiReady()) return buildNotConfigured();
+  switch(S.view){
+    case 'loading':   return buildLoading();
+    case 'form':      return buildForm();
+    case 'success':   return buildSuccess();
+    case 'dashboard': return buildDashboard();
+    case 'detail':    return buildDetail();
+  }
+  return '';
+}
+function buildLoading(){return `<div class="loading"><div class="spinner"></div><div class="loading-text">กำลังโหลดข้อมูล...</div></div>`;}
+function buildNotConfigured(){
+  return `<div class="card"><div class="card-body"><div class="empty-state"><span class="emoji">⚙️</span>
+    <p><b>ยังไม่ได้ตั้งค่า API_URL</b><br>เปิดไฟล์ index.html แล้วใส่ URL ของ Google Apps Script Web App (ลงท้ายด้วย /exec)</p></div></div></div>`;
+}
+
+/* ════════════ FORM ════════════ */
+function buildStatusBanner(){
+  const {statusChecking,todayStatus,formMode}=S;
+  if(!S.form.name) return '';
+  if(statusChecking) return `<div class="status-banner checking"><span class="status-icon">⏳</span>
+    <div><div class="status-title" style="color:var(--muted)">กำลังตรวจสอบสถานะ...</div></div></div>`;
+  if(!todayStatus) return '';
+  const {checkedIn,checkedOut,checkinTime,checkoutTime}=todayStatus;
+  if(checkedIn&&checkedOut) return `<div class="status-banner done-both"><span class="status-icon">✅</span><div>
+    <div class="status-title" style="color:var(--purple)">ลงชื่อครบแล้ววันนี้</div>
+    <div class="status-sub">🌅 เข้างาน <strong>${esc(checkinTime)} น.</strong> &nbsp;|&nbsp; 🌆 ออกงาน <strong>${esc(checkoutTime)} น.</strong></div></div></div>`;
+  if(checkedIn) return `<div class="status-banner done-in"><span class="status-icon">✅</span><div>
+    <div class="status-title" style="color:var(--green)">ลงชื่อเข้างานแล้ว</div>
+    <div class="status-sub">เข้างานเมื่อ <strong class="status-time">${esc(checkinTime)} น.</strong></div>
+    <div class="status-sub" style="font-weight:700;margin-top:4px;color:${formMode==='checkin'?'var(--red)':'var(--sky)'}">
+      ${formMode==='checkin'?'⚠️ ลงชื่อเข้างานซ้ำไม่ได้ — เลือก "ลงชื่อออกงาน" ด้านบน':'👉 พร้อมลงชื่อออกงานได้เลย'}</div></div></div>`;
+  if(formMode==='checkout') return `<div class="status-banner warn"><span class="status-icon">⚠️</span><div>
+    <div class="status-title" style="color:var(--red)">ยังไม่ได้ลงชื่อเข้างาน</div>
+    <div class="status-sub">กรุณาลงชื่อเข้างานก่อนจึงจะออกงานได้</div></div></div>`;
+  return `<div class="status-banner ready"><span class="status-icon">🟢</span><div>
+    <div class="status-title" style="color:var(--sky)">ยังไม่ได้ลงชื่อวันนี้</div>
+    <div class="status-sub">พร้อมลงชื่อเข้างานได้เลย</div></div></div>`;
+}
+function isFormBlocked(){
+  const {todayStatus:t,formMode,statusChecking}=S;
+  if(statusChecking||!t||!S.form.name) return false;
+  if(t.checkedIn&&t.checkedOut) return true;
+  if(formMode==='checkin'&&t.checkedIn) return true;
+  if(formMode==='checkout'&&!t.checkedIn) return true;
+  return false;
+}
+const WORK_TYPES=[
+  {v:'งานนโยบาย',i:'📌'},{v:'งานประสานงาน',i:'🤝'},{v:'งานสารบรรณ',i:'📄'},{v:'ประชุมออนไลน์',i:'💻'},
+  {v:'งานวิเคราะห์/วิจัย',i:'🔍'},{v:'งานแผนงบประมาณ',i:'💰'},{v:'ลงพื้นที่/สำรวจ',i:'🚗'},{v:'งานอื่นๆ',i:'📋'},
+];
+const DAY_TYPES=[{v:'WFH',e:'🏠',l:'Work from Home'},{v:'ออฟฟิศ',e:'🏢',l:'มาออฟฟิศ'},{v:'ลงพื้นที่',e:'🚗',l:'ลงพื้นที่'},{v:'ลา',e:'🏖️',l:'วันลา'}];
+
+function buildWorkTypes(){
+  const wt=S.form.workTypes;
+  return WORK_TYPES.map((t,i)=>`
+    <div class="check-item ${wt.includes(t.v)?'checked':''}" onclick="toggleWorkType(${i})">
+      <span class="check-icon">${t.i}</span><span class="check-label">${t.v}</span>
+      <span class="check-box">${wt.includes(t.v)?'✓':''}</span></div>`).join('');
+}
+function buildForm(){
+  const {formMode,form,employees,groups}=S;
+  const isIn=formMode==='checkin';
+  if(S.loadError) return `<div class="empty-state"><span class="emoji">❌</span><p>${esc(S.loadError)}</p>
+    <button class="btn-secondary" style="margin-top:14px" onclick="location.reload()">🔄 ลองใหม่</button></div>`;
+
+  const empOpts=employees.filter(e=>!form.group||e.group===form.group)
+    .map(e=>`<option value="${esc(e.name)}" ${form.name===e.name?'selected':''}>${esc(e.name)}</option>`).join('');
+  const key=isIn?'plan':'summary';
+  const blocked=isFormBlocked();
+  const t=S.todayStatus;
+  const btnText=S.submitting?'⏳ กำลังบันทึก...'
+    : blocked?(t.checkedIn&&t.checkedOut?'🔒 ลงชื่อครบแล้ววันนี้':isIn?'🔒 ลงชื่อเข้างานแล้ววันนี้':'⚠️ ต้องลงชื่อเข้างานก่อน')
+    : (isIn?'✅ ยืนยันลงชื่อเข้างาน':'🌆 ยืนยันลงชื่อออกงาน');
+
+  return `
+    <div class="mode-toggle">
+      <div class="mode-btn ${isIn?'active':''}" onclick="setMode('checkin')">🌅 ลงชื่อเข้างาน</div>
+      <div class="mode-btn ${!isIn?'active':''}" onclick="setMode('checkout')">🌆 ลงชื่อออกงาน</div>
+    </div>
+    ${buildStatusBanner()}
+    <div class="form-mode-banner ${formMode}">
+      <span style="font-size:24px">${isIn?'🌅':'🌆'}</span>
+      <div class="banner-text"><div>${isIn?'บันทึกการเข้างาน':'บันทึกการออกงาน'}</div>
+        <div class="banner-sub">${isIn?'กรอกแผนการทำงานและลงลายมือชื่อ':'กรอกสรุปผลการทำงานและลงลายมือชื่อ'}</div></div>
+    </div>
+    <div class="form-grid">
+      <div class="card">
+        <div class="card-hd"><span class="card-hd-icon">👤</span><span class="card-hd-title">ข้อมูลส่วนตัว</span></div>
+        <div class="card-body">
+          <div class="field"><label>🏢 กลุ่มงาน <span class="req">*</span></label>
+            <select id="f-group"><option value="">— เลือกกลุ่ม —</option>
+              ${groups.map(g=>`<option value="${esc(g)}" ${form.group===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div>
+          <div class="field"><label>👤 ชื่อ-นามสกุล <span class="req">*</span></label>
+            <select id="f-name"><option value="">— เลือกชื่อ —</option>${empOpts}</select></div>
+          ${isIn?`<div class="field"><label>🏷️ ประเภทวัน <span class="req">*</span></label>
+            <div class="radio-group">${DAY_TYPES.map(({v,e,l})=>`
+              <div class="radio-btn ${form.dayType===v?'selected':''}" onclick="setDayType('${v}')"><span class="emoji">${e}</span>${l}</div>`).join('')}
+            </div></div>`
+          :(t&&t.dayType?`<div class="field"><label>🏷️ ประเภทวัน</label><span class="day-tag ${dayTagClass(t.dayType)}">📍 ${esc(t.dayType)}</span></div>`:'')}
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-hd"><span class="card-hd-icon">${isIn?'📋':'📝'}</span><span class="card-hd-title">${isIn?'แผนงานวันนี้':'สรุปผลการทำงาน'}</span></div>
+          <div class="card-body">
+            <div class="field"><label>🗂️ ประเภทงานวันนี้ <span class="req">*</span>
+              <span style="font-weight:400;color:var(--muted);font-size:11px">(เลือกได้หลายข้อ)</span></label>
+              <div class="checklist-grid" id="wt-grid">${buildWorkTypes()}</div></div>
+            <div class="field"><label>${isIn?'📋 แผนงานวันนี้':'📝 สรุปงานที่ทำเสร็จ'} <span class="req">*</span></label>
+              ${[1,2,3].map(i=>`<div class="plan-input">
+                <span class="plan-num" ${isIn?'':'style="background:var(--orange)"'}>${i}</span>
+                <input type="text" id="${key}${i}" data-key="${key}${i}" maxlength="300"
+                  placeholder="${i===1?(isIn?'งานหลัก (จำเป็น)':'งานที่เสร็จ (จำเป็น)'):(isIn?'งานเพิ่มเติม (ถ้ามี)':'งานอื่น (ถ้ามี)')}"
+                  value="${esc(form[key+i])}"></div>`).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-hd-icon">✍️</span><span class="card-hd-title">ลายมือชื่อ</span>
+            <span class="card-hd-badge" style="background:var(--gold)">จำเป็น</span></div>
+          <div class="card-body">
+            <div class="sig-wrap" id="sig-wrap">
+              <canvas id="sig-canvas"></canvas>
+              <div class="sig-placeholder" id="sig-placeholder"><span class="sig-icon">✍️</span><span>ลากนิ้วหรือเมาส์เพื่อเซ็นชื่อ</span></div>
+              <div class="sig-toolbar"><span class="sig-toolbar-label">🖊️ ลายมือชื่อผู้ปฏิบัติงาน</span>
+                <button class="sig-clear" onclick="clearSignature()">ล้างใหม่</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    ${S.error?`<div class="err-box">⚠️ ${esc(S.error)}</div>`:''}
+    <button class="btn-primary" id="btn-submit" ${(S.submitting||blocked||S.statusChecking)?'disabled':''}>${btnText}</button>
+    <div style="height:8px"></div>`;
+}
+
+/* ════════════ SUCCESS ════════════ */
+function buildSuccess(){
+  const isIn=S.formMode==='checkin';
+  return `<div class="success-screen">
+    <div class="success-icon-wrap ${isIn?'in':'out'}">${isIn?'✅':'🎉'}</div>
+    <div class="success-title ${isIn?'in':'out'}">${isIn?'ลงชื่อเข้างานสำเร็จ':'ลงชื่อออกงานสำเร็จ'}</div>
+    <div class="success-name">${esc(S.submittedName)}</div>
+    <div class="success-time">${esc(S.submittedAt)} น.</div>
+    <div class="success-sub">${thaiDate(todayStr())}<br>ข้อมูลถูกบันทึกเรียบร้อยแล้ว${isIn?'<br>อย่าลืมกลับมาลงชื่อออกงานตอนเย็น 🌆':''}</div>
+    <div class="success-actions">
+      <button class="btn-secondary" onclick="resetForm()">📝 กลับหน้าลงชื่อ</button>
+      <button class="btn-secondary" onclick="switchView('dashboard')">📊 ดู Dashboard</button>
+    </div></div>`;
+}
+
+/* ════════════ DASHBOARD ════════════ */
+function buildDashboard(){
+  const {dashboard:d,selGroup,selDate,groups}=S;
+  const filters=`<div class="filter-bar">
+    <div class="filter-item"><label>📅 วันที่</label><input type="date" id="f-date" value="${selDate}" max="${todayStr()}"></div>
+    <div class="filter-item"><label>🏢 กลุ่มงาน</label><select id="f-dash-group">
+      <option value="ทั้งหมด" ${selGroup==='ทั้งหมด'?'selected':''}>— ทุกกลุ่ม —</option>
+      ${groups.map(g=>`<option value="${esc(g)}" ${selGroup===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div>
+    <button class="btn-secondary" onclick="refreshDashboard()">🔄 รีเฟรช</button>
+  </div>`;
+  if(!d) return filters+buildLoading();
+  if(d.error||d.success===false) return filters+`<div class="empty-state"><span class="emoji">❌</span><p>โหลดข้อมูลไม่สำเร็จ ${esc(d.message||'')}<br>กรุณากดรีเฟรช</p></div>`;
+
+  const ci=d.checkin??0, co=d.checkout??0, miss=d.missing??0;
+  const kpis=[
+    {icon:'✅',val:ci,label:`เช็คอินแล้ว (จาก ${d.total??0})`,color:'var(--lg)',border:'#a8e8c4',bg:'#e6f9f0'},
+    {icon:'💼',val:Math.max(0,ci-co),label:'กำลังทำงานอยู่',color:'var(--sky)',border:'#a8d4f0',bg:'#e6f3fc'},
+    {icon:'🌆',val:co,label:'เช็คเอาท์แล้ว',color:'var(--orange)',border:'#ffd0a0',bg:'#fff5ea'},
+    {icon:'⏳',val:miss,label:'ยังไม่ได้ลงชื่อ',color:'var(--red)',border:'#ffcfcf',bg:'#ffeaea'},
+  ];
+  const kpiGrid=`<div class="kpi-grid-desk">${kpis.map((k,i)=>`
+    <div class="kpi-card" style="background:${k.bg};border-color:${k.border};animation-delay:${i*.07}s">
+      <div class="kpi-icon">${k.icon}</div><div class="kpi-val" style="color:${k.color}">${k.val}</div>
+      <div class="kpi-label">${k.label}</div></div>`).join('')}</div>`;
+
+  S.dashGroups=Object.entries(d.groupSummary||{}).filter(([,gs])=>gs.total>0);
+  const groupRows=S.dashGroups.map(([g,gs],idx)=>{
+    const color=dotColor(gs.total?gs.checkin/gs.total:0);
+    return `<div class="group-row" onclick="showDetail(${idx})" style="animation-delay:${idx*.05}s">
+      <div class="group-dot" style="background:${color}"></div>
+      <div class="group-info"><div class="group-name">${esc(g)}</div>
+        <div class="group-stat">เช็คอิน ${gs.checkin}/${gs.total} • ทำงานอยู่ ${Math.max(0,gs.checkin-gs.checkout)} • เช็คเอาท์ ${gs.checkout}</div></div>
+      <div class="group-progress"><div class="progress-bar"><div class="progress-fill" style="width:${pct(gs.checkin,gs.total)}%;background:${color}"></div></div>
+        <div class="progress-pct" style="color:${color}">${pct(gs.checkin,gs.total)}%</div></div>
+      <span class="group-arrow">›</span></div>`;}).join('');
+
+  let missingBlock;
+  const mn=d.missingNames||[];
+  if(mn.length){
+    const byGroup={};
+    mn.forEach(m=>{(byGroup[m.group||'']=byGroup[m.group||'']||[]).push(m.name);});
+    missingBlock=`<div class="card"><div class="card-hd"><span class="card-hd-icon">⚠️</span>
+      <span class="card-hd-title">ยังไม่ได้เช็คอิน (${mn.length} คน)</span></div><div class="card-body">
+      ${Object.entries(byGroup).map(([g,ns])=>`${selGroup==='ทั้งหมด'&&g?`<div class="missing-group">${esc(g)}</div>`:''}
+        ${ns.map(n=>`<span class="missing-tag">👤 ${esc(n)}</span>`).join('')}`).join('')}</div></div>`;
+  } else {
+    missingBlock=`<div class="card" style="text-align:center;padding:20px"><div style="font-size:28px">🎉</div>
+      <div style="font-weight:700;color:var(--green);margin-top:8px">ทุกคนลงชื่อครบแล้ว!</div></div>`;
+  }
+  return `${filters}${kpiGrid}<div class="dash-grid"><div>${groupRows||'<div class="empty-state"><p>ไม่มีข้อมูล</p></div>'}</div><div>${missingBlock}</div></div>`;
+}
+
+/* ════════════ GROUP DETAIL ════════════ */
+function buildDetail(){
+  const gd=S.groupDetail;
+  if(!gd) return buildLoading();
+  if(gd.error||gd.success===false) return `<div class="back-btn" onclick="goBack()">‹ กลับ Dashboard</div><div class="empty-state"><span class="emoji">❌</span><p>โหลดข้อมูลไม่สำเร็จ</p></div>`;
+  const recs=gd.records||{};
+  const cards=(gd.employees||[]).map((emp,idx)=>{
+    const rec=recs[emp.name]||{};
+    const hasIn=!!rec.checkinTime, hasOut=!!rec.checkoutTime;
+    return `<div class="person-card" style="animation-delay:${idx*.04}s">
+      <div class="person-header"><div class="person-name">${esc(emp.name)}</div>
+        ${emp.type?`<span class="person-type-badge ${typeClass(emp.type)}">${esc(emp.type)}</span>`:''}</div>
+      ${rec.dayType?`<span class="day-tag ${dayTagClass(rec.dayType)}">📍 ${esc(rec.dayType)}</span>`:''}
+      <div class="time-row">
+        <div class="time-chip ${hasIn?'in':'missing'}"><span class="t-label">เข้างาน</span>${hasIn?esc(rec.checkinTime)+' น.':'—'}</div>
+        <div class="time-chip ${hasOut?'out':'missing'}"><span class="t-label">ออกงาน</span>${hasOut?esc(rec.checkoutTime)+' น.':'—'}</div>
+      </div>
+      ${hasIn&&rec.plans&&rec.plans.length?`<div class="plans-label">📋 แผนงาน</div>${rec.plans.map(p=>`<div class="plan-item">${esc(p)}</div>`).join('')}`:''}
+      ${hasOut&&rec.summaries&&rec.summaries.length?`<div class="plans-label" style="margin-top:8px">✅ สรุปงาน</div>${rec.summaries.map(s=>`<div class="plan-item">${esc(s)}</div>`).join('')}`:''}
+      ${!hasIn?`<div style="color:var(--red);font-size:11px;font-weight:700;margin-top:4px">❌ ยังไม่ได้ลงชื่อ</div>`:''}
+    </div>`;}).join('');
+  return `<div class="back-btn" onclick="goBack()">‹ กลับ Dashboard</div>
+    <div class="card"><div class="card-hd"><span class="card-hd-icon">🏢</span><span class="card-hd-title">${esc(gd.group)}</span>
+      <span class="card-hd-badge" style="background:var(--navy)">${thaiDate(S.selDate)}</span></div></div>
+    ${cards||`<div class="empty-state"><span class="emoji">👥</span><p>ไม่มีข้อมูล</p></div>`}`;
+}
+
+/* ════════════ EVENTS ════════════ */
+function bindEvents(){
+  const fg=document.getElementById('f-group');
+  if(fg) fg.addEventListener('change',e=>{S.form.group=e.target.value;S.form.name='';S.todayStatus=null;render();});
+  const fn=document.getElementById('f-name');
+  if(fn) fn.addEventListener('change',e=>{
+    S.form.name=e.target.value; S.todayStatus=null;
+    if(!S.form.group){const emp=S.employees.find(x=>x.name===S.form.name); if(emp) S.form.group=emp.group;}
+    if(S.form.name) checkTodayStatus(S.form.name,true); else render();
+  });
+  document.querySelectorAll('input[data-key]').forEach(inp=>inp.addEventListener('input',e=>{S.form[e.target.dataset.key]=e.target.value;}));
+  document.getElementById('btn-submit')?.addEventListener('click',handleSubmit);
+  document.getElementById('f-date')?.addEventListener('change',e=>{S.selDate=e.target.value||todayStr();refreshDashboard();});
+  document.getElementById('f-dash-group')?.addEventListener('change',e=>{S.selGroup=e.target.value;refreshDashboard();});
+  if(document.getElementById('sig-canvas')) requestAnimationFrame(initSignaturePad);
+}
+
+function setMode(m){S.formMode=m;S.error=null;render();}
+function setDayType(v){S.form.dayType=v;render();}
+function toggleWorkType(i){
+  const v=WORK_TYPES[i].v, wt=S.form.workTypes, k=wt.indexOf(v);
+  if(k===-1) wt.push(v); else wt.splice(k,1);
+  const g=document.getElementById('wt-grid'); if(g) g.innerHTML=buildWorkTypes();
+}
+function resetForm(){
+  const keep={group:S.form.group,name:S.form.name};
+  S.view='form'; S.form={...EMPTY_FORM(),...keep}; S.error=null; S.todayStatus=null;
+  if(keep.name) checkTodayStatus(keep.name,true); else render();
+}
+function switchView(v){
+  S.view=v; S.error=null; closeSidebar();
+  if(v==='dashboard') refreshDashboard(); else render();
+}
+function refreshDashboard(){S.dashboard=null;S.view='dashboard';render();loadDashboard();}
+function showDetail(idx){
+  const g=S.dashGroups[idx]; if(!g) return;
+  S.view='detail'; S.groupDetail=null; render(); loadGroupDetail(g[0]);
+}
+function goBack(){S.view='dashboard';render();}
+
+async function checkTodayStatus(name,autoMode){
+  S.statusChecking=true; render();
+  try{
+    const r=await api({action:'checkStatus',name});
+    if(S.form.name!==name) return;
+    S.todayStatus=r&&r.success!==false?r:null;
+    // เลือกโหมดให้อัตโนมัติ: เข้างานแล้วแต่ยังไม่ออก → สลับเป็นออกงาน
+    if(autoMode&&S.todayStatus){
+      if(S.todayStatus.checkedIn&&!S.todayStatus.checkedOut) S.formMode='checkout';
+      else if(!S.todayStatus.checkedIn) S.formMode='checkin';
+    }
+  }catch(e){S.todayStatus=null;}
+  S.statusChecking=false;
+  if(S.view==='form') render();
+}
+
+/* ════════════ SUBMIT ════════════ */
+async function handleSubmit(){
+  const f=S.form, isIn=S.formMode==='checkin';
+  document.querySelectorAll('input[data-key]').forEach(inp=>{f[inp.dataset.key]=inp.value.trim();});
+  const fail=m=>{S.error=m;render();};
+  if(!f.group) return fail('กรุณาเลือกกลุ่มงาน');
+  if(!f.name)  return fail('กรุณาเลือกชื่อ');
+  if(!f.workTypes.length) return fail('กรุณาเลือกประเภทงานอย่างน้อย 1 ประเภท');
+  if(isIn&&!f.plan1) return fail('กรุณากรอกแผนงานอย่างน้อย 1 ข้อ');
+  if(!isIn&&!f.summary1) return fail('กรุณากรอกสรุปงานอย่างน้อย 1 ข้อ');
+  if(!f.signature) return fail('กรุณาเซ็นลายมือชื่อก่อนยืนยัน');
+
+  S.submitting=true; S.error=null; render();
+  try{
+    const res=await api({
+      action:isIn?'submitCheckin':'submitCheckout',
+      group:f.group, name:f.name, dayType:f.dayType,
+      plan1:f.plan1, plan2:f.plan2, plan3:f.plan3,
+      summary1:f.summary1, summary2:f.summary2, summary3:f.summary3,
+      workTypes:f.workTypes.join(', '),
+    });
+    if(!res||!res.success){S.error=(res&&res.message)||'เกิดข้อผิดพลาด';S.submitting=false;
+      if(f.name) checkTodayStatus(f.name,false); else render(); return;}
+    if(res.rowId){ try{ await apiPost({action:'saveSignature',rowId:res.rowId,signature:f.signature}); }catch(e){} }
+    S.view='success'; S.submittedAt=res.time; S.submittedName=f.name;
+  }catch(err){
+    S.error='ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่อีกครั้ง';
+  }
+  S.submitting=false; render();
+}
+
+/* ════════════ SIGNATURE PAD ════════════ */
+function initSignaturePad(){
+  const canvas=document.getElementById('sig-canvas'); if(!canvas) return;
+  const wrap=document.getElementById('sig-wrap');
+  canvas.width=Math.max(200,Math.min(canvas.offsetWidth||400,400));
+  canvas.height=130;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);   // พื้นขาว (JPEG ไม่มีพื้นโปร่งใส)
+  ctx.strokeStyle='#0b2545'; ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.lineJoin='round';
+  let drawing=false, last=null;
+  const pos=e=>{const r=canvas.getBoundingClientRect(),s=e.touches?e.touches[0]:e;
+    return {x:(s.clientX-r.left)*(canvas.width/r.width),y:(s.clientY-r.top)*(canvas.height/r.height)};};
+  const start=e=>{e.preventDefault();drawing=true;last=pos(e);
+    document.getElementById('sig-placeholder')?.classList.add('hidden');wrap.classList.add('has-sig');};
+  const move=e=>{if(!drawing)return;e.preventDefault();const p=pos(e);
+    ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;};
+  const end=()=>{if(!drawing)return;drawing=false;S.form.signature=canvas.toDataURL('image/jpeg',0.5);};
+  canvas.addEventListener('mousedown',start); canvas.addEventListener('mousemove',move);
+  canvas.addEventListener('mouseup',end); canvas.addEventListener('mouseleave',end);
+  canvas.addEventListener('touchstart',start,{passive:false});
+  canvas.addEventListener('touchmove',move,{passive:false});
+  canvas.addEventListener('touchend',end);
+  if(S.form.signature){
+    const img=new Image(); img.onload=()=>ctx.drawImage(img,0,0,canvas.width,canvas.height); img.src=S.form.signature;
+    wrap.classList.add('has-sig'); document.getElementById('sig-placeholder')?.classList.add('hidden');
+  }
+}
+function clearSignature(){
+  const c=document.getElementById('sig-canvas'); if(!c) return;
+  const ctx=c.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,c.width,c.height);
+  S.form.signature='';
+  document.getElementById('sig-wrap')?.classList.remove('has-sig');
+  document.getElementById('sig-placeholder')?.classList.remove('hidden');
+}
+
+/* ════════════ LOADERS ════════════ */
+async function loadInit(){
+  if(!apiReady()){render();return;}
+  try{
+    const r=await api({action:'getEmployees'});
+    if(!r||r.success===false) throw new Error(r&&r.message);
+    S.employees=r.employees||[]; S.groups=r.groups||[];
+  }catch(e){ S.loadError='โหลดรายชื่อไม่สำเร็จ '+(e.message&&e.message!=='undefined'?'('+e.message+')':''); }
+  S.view='form'; render();
+}
+async function loadDashboard(){
+  const key=S.selDate+'|'+S.selGroup;
+  try{
+    const r=await api({action:'getDashboard',date:S.selDate,group:S.selGroup});
+    if(key!==S.selDate+'|'+S.selGroup) return;
+    S.dashboard=Array.isArray(r)?r[0]:r;
+  }catch(e){S.dashboard={error:true};}
+  if(S.view==='dashboard') render();
+}
+async function loadGroupDetail(g){
+  try{ S.groupDetail=await api({action:'getGroupDetail',date:S.selDate,group:g}); }
+  catch(e){ S.groupDetail={error:true}; }
+  if(S.view==='detail') render();
+}
+
+/* ════════════ INIT ════════════ */
+tickClock(); render(); loadInit();
+</script>
+</body>
+</html>
