@@ -50,7 +50,7 @@ button{cursor:pointer}
 
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
 .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
-.kpi-grid-desk{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.kpi-grid-desk{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
 
 .card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1.5px solid var(--border);overflow:hidden;margin-bottom:18px;animation:fadeUp .35s ease both}
 .card-hd{padding:14px 18px;display:flex;align-items:center;gap:10px;border-bottom:1.5px solid var(--border);background:linear-gradient(to right,#f5f8ff,var(--card))}
@@ -182,6 +182,8 @@ button{cursor:pointer}
 .empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
 .empty-state .emoji{font-size:40px;display:block;margin-bottom:12px}
 .empty-state p{font-size:13px;line-height:1.6}
+.late-badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:800;background:#ffe0e0;color:var(--red);margin-left:6px;vertical-align:middle}
+.late-warn{background:#fff4e5;border:2px solid #ffc98a;color:#9a5a12}
 .err-box{color:var(--red);font-size:13px;text-align:center;margin:4px 0 12px;font-weight:600}
 
 @media (max-width:768px){
@@ -257,6 +259,7 @@ const EMPTY_FORM = () => ({
 let S = {
   view:'loading', formMode:'checkin',
   employees:[], groups:[],
+  settings:{lateAfter:'09:30',checkinClose:'',lateDayTypes:['WFH','ออฟฟิศ']},
   selGroup:'ทั้งหมด', selDate:todayStr(),
   dashboard:null, dashGroups:[], groupDetail:null,
   submitting:false, submittedAt:null, submittedName:'',
@@ -292,6 +295,13 @@ function typeClass(t){
   if(t.includes('พนักงาน')||t.includes('ลูกจ้าง')) return 'type-emp';
   return 'type-other';
 }
+function nowHM(){const n=new Date();return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;}
+function toMin(hm){const m=String(hm||'').match(/^(\d{1,2}):(\d{2})/);return m?(+m[1])*60+(+m[2]):null;}
+function lateMinutesNow(dayType){
+  const st=S.settings; if(!st||!st.lateAfter||(st.lateDayTypes||[]).indexOf(dayType)===-1) return 0;
+  return Math.max(0,toMin(nowHM())-toMin(st.lateAfter));
+}
+function checkinClosed(){const c=S.settings&&S.settings.checkinClose;return !!c&&toMin(nowHM())>toMin(c);}
 const apiReady = () => /^https:\/\/script\.google\.com\/.+\/exec$/.test(API_URL);
 
 // JSONP (เลี่ยง CORS ระหว่าง Netlify ↔ Google Apps Script)
@@ -375,10 +385,10 @@ function buildStatusBanner(){
   const {checkedIn,checkedOut,checkinTime,checkoutTime}=todayStatus;
   if(checkedIn&&checkedOut) return `<div class="status-banner done-both"><span class="status-icon">✅</span><div>
     <div class="status-title" style="color:var(--purple)">ลงชื่อครบแล้ววันนี้</div>
-    <div class="status-sub">🌅 เข้างาน <strong>${esc(checkinTime)} น.</strong> &nbsp;|&nbsp; 🌆 ออกงาน <strong>${esc(checkoutTime)} น.</strong></div></div></div>`;
+    <div class="status-sub">🌅 เข้างาน <strong>${esc(checkinTime)} น.</strong>${todayStatus.late?`<span class="late-badge">สาย</span>`:''} &nbsp;|&nbsp; 🌆 ออกงาน <strong>${esc(checkoutTime)} น.</strong></div></div></div>`;
   if(checkedIn) return `<div class="status-banner done-in"><span class="status-icon">✅</span><div>
     <div class="status-title" style="color:var(--green)">ลงชื่อเข้างานแล้ว</div>
-    <div class="status-sub">เข้างานเมื่อ <strong class="status-time">${esc(checkinTime)} น.</strong></div>
+    <div class="status-sub">เข้างานเมื่อ <strong class="status-time">${esc(checkinTime)} น.</strong>${todayStatus.late?`<span class="late-badge">⏰ สาย ${todayStatus.lateMin} นาที</span>`:''}</div>
     <div class="status-sub" style="font-weight:700;margin-top:4px;color:${formMode==='checkin'?'var(--red)':'var(--sky)'}">
       ${formMode==='checkin'?'⚠️ ลงชื่อเข้างานซ้ำไม่ได้ — เลือก "ลงชื่อออกงาน" ด้านบน':'👉 พร้อมลงชื่อออกงานได้เลย'}</div></div></div>`;
   if(formMode==='checkout') return `<div class="status-banner warn"><span class="status-icon">⚠️</span><div>
@@ -388,11 +398,24 @@ function buildStatusBanner(){
     <div class="status-title" style="color:var(--sky)">ยังไม่ได้ลงชื่อวันนี้</div>
     <div class="status-sub">พร้อมลงชื่อเข้างานได้เลย</div></div></div>`;
 }
+function buildLateWarning(){
+  if(S.formMode!=='checkin') return '';
+  const t=S.todayStatus; if(t&&t.checkedIn) return '';
+  if(checkinClosed()) return `<div class="status-banner warn"><span class="status-icon">🔒</span><div>
+    <div class="status-title" style="color:var(--red)">ปิดรับลงชื่อเข้างานแล้ว</div>
+    <div class="status-sub">ลงชื่อเข้างานได้ถึง ${esc(S.settings.checkinClose)} น.</div></div></div>`;
+  const m=lateMinutesNow(S.form.dayType);
+  if(!m) return '';
+  return `<div class="status-banner late-warn"><span class="status-icon">⏰</span><div>
+    <div class="status-title">เลยเวลา ${esc(S.settings.lateAfter)} น. แล้ว (สาย ${m} นาที)</div>
+    <div class="status-sub" style="color:#9a5a12">ยังลงชื่อเข้างานได้ แต่ระบบจะบันทึกว่า <b>"มาสาย"</b></div></div></div>`;
+}
 function isFormBlocked(){
   const {todayStatus:t,formMode,statusChecking}=S;
   if(statusChecking||!t||!S.form.name) return false;
   if(t.checkedIn&&t.checkedOut) return true;
   if(formMode==='checkin'&&t.checkedIn) return true;
+  if(formMode==='checkin'&&checkinClosed()) return true;
   if(formMode==='checkout'&&!t.checkedIn) return true;
   return false;
 }
@@ -416,12 +439,12 @@ function buildForm(){
     <button class="btn-secondary" style="margin-top:14px" onclick="location.reload()">🔄 ลองใหม่</button></div>`;
 
   const empOpts=employees.filter(e=>!form.group||e.group===form.group)
-    .map(e=>`<option value="${esc(e.name)}" ${form.name===e.name?'selected':''}>${esc(e.name)}</option>`).join('');
+    .map(e=>`<option value="${esc(e.name)}" ${form.name===e.name?'selected':''}>${esc(e.name)}${e.nickname?' ('+esc(e.nickname)+')':''}</option>`).join('');
   const key=isIn?'plan':'summary';
   const blocked=isFormBlocked();
   const t=S.todayStatus;
   const btnText=S.submitting?'⏳ กำลังบันทึก...'
-    : blocked?(t.checkedIn&&t.checkedOut?'🔒 ลงชื่อครบแล้ววันนี้':isIn?'🔒 ลงชื่อเข้างานแล้ววันนี้':'⚠️ ต้องลงชื่อเข้างานก่อน')
+    : blocked?(isIn&&checkinClosed()&&!t.checkedIn?'🔒 ปิดรับลงชื่อเข้างานแล้ว':t.checkedIn&&t.checkedOut?'🔒 ลงชื่อครบแล้ววันนี้':isIn?'🔒 ลงชื่อเข้างานแล้ววันนี้':'⚠️ ต้องลงชื่อเข้างานก่อน')
     : (isIn?'✅ ยืนยันลงชื่อเข้างาน':'🌆 ยืนยันลงชื่อออกงาน');
 
   return `
@@ -430,6 +453,7 @@ function buildForm(){
       <div class="mode-btn ${!isIn?'active':''}" onclick="setMode('checkout')">🌆 ลงชื่อออกงาน</div>
     </div>
     ${buildStatusBanner()}
+    ${buildLateWarning()}
     <div class="form-mode-banner ${formMode}">
       <span style="font-size:24px">${isIn?'🌅':'🌆'}</span>
       <div class="banner-text"><div>${isIn?'บันทึกการเข้างาน':'บันทึกการออกงาน'}</div>
@@ -494,6 +518,7 @@ function buildSuccess(){
     <div class="success-title ${isIn?'in':'out'}">${isIn?'ลงชื่อเข้างานสำเร็จ':'ลงชื่อออกงานสำเร็จ'}</div>
     <div class="success-name">${esc(S.submittedName)}</div>
     <div class="success-time">${esc(S.submittedAt)} น.</div>
+    ${isIn&&S.submittedLate?`<div style="margin:-4px 0 10px"><span class="late-badge" style="font-size:13px;padding:5px 14px">⏰ บันทึกว่ามาสาย ${S.submittedLate} นาที</span></div>`:''}
     <div class="success-sub">${thaiDate(todayStr())}<br>ข้อมูลถูกบันทึกเรียบร้อยแล้ว${isIn?'<br>อย่าลืมกลับมาลงชื่อออกงานตอนเย็น 🌆':''}</div>
     <div class="success-actions">
       <button class="btn-secondary" onclick="resetForm()">📝 กลับหน้าลงชื่อ</button>
@@ -519,6 +544,7 @@ function buildDashboard(){
     {icon:'✅',val:ci,label:`เช็คอินแล้ว (จาก ${d.total??0})`,color:'var(--lg)',border:'#a8e8c4',bg:'#e6f9f0'},
     {icon:'💼',val:Math.max(0,ci-co),label:'กำลังทำงานอยู่',color:'var(--sky)',border:'#a8d4f0',bg:'#e6f3fc'},
     {icon:'🌆',val:co,label:'เช็คเอาท์แล้ว',color:'var(--orange)',border:'#ffd0a0',bg:'#fff5ea'},
+    {icon:'⏰',val:d.late??0,label:`มาสาย (หลัง ${esc((d.settings||S.settings).lateAfter)} น.)`,color:'#b8620f',border:'#ffc98a',bg:'#fff4e5'},
     {icon:'⏳',val:miss,label:'ยังไม่ได้ลงชื่อ',color:'var(--red)',border:'#ffcfcf',bg:'#ffeaea'},
   ];
   const kpiGrid=`<div class="kpi-grid-desk">${kpis.map((k,i)=>`
@@ -532,7 +558,7 @@ function buildDashboard(){
     return `<div class="group-row" onclick="showDetail(${idx})" style="animation-delay:${idx*.05}s">
       <div class="group-dot" style="background:${color}"></div>
       <div class="group-info"><div class="group-name">${esc(g)}</div>
-        <div class="group-stat">เช็คอิน ${gs.checkin}/${gs.total} • ทำงานอยู่ ${Math.max(0,gs.checkin-gs.checkout)} • เช็คเอาท์ ${gs.checkout}</div></div>
+        <div class="group-stat">เช็คอิน ${gs.checkin}/${gs.total} • ทำงานอยู่ ${Math.max(0,gs.checkin-gs.checkout)} • เช็คเอาท์ ${gs.checkout}${gs.late?` • <span style="color:var(--red);font-weight:700">สาย ${gs.late}</span>`:''}</div></div>
       <div class="group-progress"><div class="progress-bar"><div class="progress-fill" style="width:${pct(gs.checkin,gs.total)}%;background:${color}"></div></div>
         <div class="progress-pct" style="color:${color}">${pct(gs.checkin,gs.total)}%</div></div>
       <span class="group-arrow">›</span></div>`;}).join('');
@@ -550,7 +576,14 @@ function buildDashboard(){
     missingBlock=`<div class="card" style="text-align:center;padding:20px"><div style="font-size:28px">🎉</div>
       <div style="font-weight:700;color:var(--green);margin-top:8px">ทุกคนลงชื่อครบแล้ว!</div></div>`;
   }
-  return `${filters}${kpiGrid}<div class="dash-grid"><div>${groupRows||'<div class="empty-state"><p>ไม่มีข้อมูล</p></div>'}</div><div>${missingBlock}</div></div>`;
+  const ln=d.lateNames||[];
+  const lateBlock=ln.length?`<div class="card"><div class="card-hd"><span class="card-hd-icon">⏰</span>
+    <span class="card-hd-title">มาสาย (${ln.length} คน)</span></div><div class="card-body">
+    ${ln.map(x=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border);font-size:12.5px">
+      <span><b>${esc(x.name)}</b><br><span style="color:var(--muted);font-size:11px">${esc(x.group)}</span></span>
+      <span style="text-align:right;white-space:nowrap"><b>${esc(x.time)} น.</b><br><span class="late-badge" style="margin:0">สาย ${x.min} นาที</span></span></div>`).join('')}
+    </div></div>`:'';
+  return `${filters}${kpiGrid}<div class="dash-grid"><div>${groupRows||'<div class="empty-state"><p>ไม่มีข้อมูล</p></div>'}</div><div>${lateBlock}${missingBlock}</div></div>`;
 }
 
 /* ════════════ GROUP DETAIL ════════════ */
@@ -563,11 +596,11 @@ function buildDetail(){
     const rec=recs[emp.name]||{};
     const hasIn=!!rec.checkinTime, hasOut=!!rec.checkoutTime;
     return `<div class="person-card" style="animation-delay:${idx*.04}s">
-      <div class="person-header"><div class="person-name">${esc(emp.name)}</div>
+      <div class="person-header"><div class="person-name">${esc(emp.name)}${emp.nickname?` <span style="font-weight:500;color:var(--muted);font-size:12px">(${esc(emp.nickname)})</span>`:''}</div>
         ${emp.type?`<span class="person-type-badge ${typeClass(emp.type)}">${esc(emp.type)}</span>`:''}</div>
       ${rec.dayType?`<span class="day-tag ${dayTagClass(rec.dayType)}">📍 ${esc(rec.dayType)}</span>`:''}
       <div class="time-row">
-        <div class="time-chip ${hasIn?'in':'missing'}"><span class="t-label">เข้างาน</span>${hasIn?esc(rec.checkinTime)+' น.':'—'}</div>
+        <div class="time-chip ${hasIn?'in':'missing'}"><span class="t-label">เข้างาน</span>${hasIn?esc(rec.checkinTime)+' น.':'—'}${rec.late?`<br><span class="late-badge" style="margin:2px 0 0">สาย ${rec.lateMin} นาที</span>`:''}</div>
         <div class="time-chip ${hasOut?'out':'missing'}"><span class="t-label">ออกงาน</span>${hasOut?esc(rec.checkoutTime)+' น.':'—'}</div>
       </div>
       ${hasIn&&rec.plans&&rec.plans.length?`<div class="plans-label">📋 แผนงาน</div>${rec.plans.map(p=>`<div class="plan-item">${esc(p)}</div>`).join('')}`:''}
@@ -660,7 +693,7 @@ async function handleSubmit(){
     if(!res||!res.success){S.error=(res&&res.message)||'เกิดข้อผิดพลาด';S.submitting=false;
       if(f.name) checkTodayStatus(f.name,false); else render(); return;}
     if(res.rowId){ try{ await apiPost({action:'saveSignature',rowId:res.rowId,signature:f.signature}); }catch(e){} }
-    S.view='success'; S.submittedAt=res.time; S.submittedName=f.name;
+    S.view='success'; S.submittedAt=res.time; S.submittedName=f.name; S.submittedLate=res.late?res.lateMin:0;
   }catch(err){
     S.error='ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่อีกครั้ง';
   }
@@ -708,7 +741,7 @@ async function loadInit(){
   try{
     const r=await api({action:'getEmployees'});
     if(!r||r.success===false) throw new Error(r&&r.message);
-    S.employees=r.employees||[]; S.groups=r.groups||[];
+    S.employees=r.employees||[]; S.groups=r.groups||[]; if(r.settings) S.settings=r.settings;
   }catch(e){ S.loadError='โหลดรายชื่อไม่สำเร็จ '+(e.message&&e.message!=='undefined'?'('+e.message+')':''); }
   S.view='form'; render();
 }
